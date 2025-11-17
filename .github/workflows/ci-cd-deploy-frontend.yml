@@ -12,7 +12,6 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
-
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -42,27 +41,48 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      # 1) checkout the repository so there's a .git directory to configure/push
       - name: Checkout repository (for deploy)
         uses: actions/checkout@v4
         with:
-          # allow push using the GITHUB_TOKEN
           persist-credentials: true
           fetch-depth: 0
 
-      # 2) download the built artifact produced by the build job
+      - name: DEBUG — Workspace contents (top-level)
+        run: |
+          echo "=== WORKSPACE ==="
+          pwd
+          ls -la
+          echo "=== WORKFLOW FILES (.github) ==="
+          ls -la .github || true
+
+      - name: DEBUG — Check .git & git version
+        run: |
+          echo "git version:" && git --version || true
+          echo "ls -la .git (exists?)"
+          if [ -d ".git" ]; then echo ".git exists"; ls -la .git | head -n 20; else echo ".git NOT found"; fi
+          echo "git rev-parse (show top-level) (may fail):"
+          git rev-parse --show-toplevel || true
+          echo "git status (may fail):"
+          git status --porcelain --untracked-files=all || true
+
       - name: Download build artifact
         uses: actions/download-artifact@v4
         with:
           name: frontend-build
 
-      # 3) normalize build folder and fail early if missing
+      - name: DEBUG — After download list files
+        run: |
+          echo "=== AFTER DOWNLOAD ==="
+          pwd
+          ls -la
+          echo "Contents of current directory (first 200 lines):"
+          find . -maxdepth 2 -print | sed -n '1,200p'
+
       - name: Normalize build folder
         run: |
           if [ -d "dist" ]; then mv dist build; fi
           if [ ! -d "build" ]; then echo "No build output found! Listing repo:" && ls -la && exit 1; fi
 
-      # 4) Deploy to GitHub Pages (uses the checked-out repo so this action can push)
       - name: Deploy to GitHub Pages
         uses: JamesIves/github-pages-deploy-action@v4
         with:
