@@ -1,5 +1,10 @@
 name: CI/CD — Build & Deploy Frontend
 
+# grant the token explicit permissions needed for deployment
+permissions:
+  contents: write    # allow pushing the gh-pages branch
+  pages: write       # allow Pages API actions (if needed)
+
 on:
   push:
     branches:
@@ -46,6 +51,7 @@ jobs:
       - name: Normalize build folder
         run: |
           if [ -d "dist" ]; then mv dist build; fi
+          if [ ! -d "build" ]; then echo "No build output found! Listing repo:" && ls -la && exit 1; fi
 
       - name: Deploy to GitHub Pages
         uses: JamesIves/github-pages-deploy-action@v4
