@@ -1,9 +1,8 @@
 name: CI/CD — Build & Deploy Frontend
 
-# grant the token explicit permissions needed for deployment
 permissions:
-  contents: write    # allow pushing the gh-pages branch
-  pages: write       # allow Pages API actions (if needed)
+  contents: write
+  pages: write
 
 on:
   push:
@@ -43,16 +42,27 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+      # 1) checkout the repository so there's a .git directory to configure/push
+      - name: Checkout repository (for deploy)
+        uses: actions/checkout@v4
+        with:
+          # allow push using the GITHUB_TOKEN
+          persist-credentials: true
+          fetch-depth: 0
+
+      # 2) download the built artifact produced by the build job
       - name: Download build artifact
         uses: actions/download-artifact@v4
         with:
           name: frontend-build
 
+      # 3) normalize build folder and fail early if missing
       - name: Normalize build folder
         run: |
           if [ -d "dist" ]; then mv dist build; fi
           if [ ! -d "build" ]; then echo "No build output found! Listing repo:" && ls -la && exit 1; fi
 
+      # 4) Deploy to GitHub Pages (uses the checked-out repo so this action can push)
       - name: Deploy to GitHub Pages
         uses: JamesIves/github-pages-deploy-action@v4
         with:
